@@ -1,0 +1,38 @@
+# Ejecutar docker compose up -d
+
+x-common-env: &common-env
+  SECRET: "esta_es_mi_compleja_clave_secreta"
+
+services:
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "9090:9090"
+    environment:
+      <<: *common-env
+    depends_on:
+      - auth-service
+      - contenidos-service
+      - vinculacion-service
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "9094:9094"
+    environment:
+      <<: *common-env
+
+  contenidos-service:
+    build: ./contenidos-service
+    ports:
+      - "9091:9091"
+    environment:
+      <<: *common-env
+
+  vinculacion-service:
+    build: ./vinculacion-service
+    ports:
+      - "9092:9092"
+    environment:
+      <<: *common-env
