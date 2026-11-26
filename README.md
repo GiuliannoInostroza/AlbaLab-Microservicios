@@ -53,6 +53,15 @@ for s in api-gateway auth-service contenidos-service vinculacion-service; do (cd
 docker compose up -d --build
 ```
 
+### Probar con Postman
+
+1. En Postman: **Import** > elegir `postman/AlbaLab-Microservicios.postman_collection.json`.
+2. Ejecutar **1. auth-service > Iniciar sesión**: guarda el token JWT en la variable `token` y las demás peticiones lo envían solas.
+3. Probar el resto en orden. **Crear solicitud** guarda el `id` creado, que usan **Actualizar** y **Eliminar**.
+4. **Programas SIN token** muestra que el gateway responde 401 si falta el token.
+
+Los servicios tienen `spring.jpa.show-sql=true`, así que `docker compose logs -f vinculacion-service` muestra cada `insert`, `update` y `delete` que llega desde la app o desde Postman.
+
 ### Probar con curl
 
 ```bash

@@ -1,0 +1,477 @@
+{
+  "info": {
+    "name": "AlbaLab Microservicios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Endpoints de Alba Lab Conecta a través del api-gateway (puerto 9090). Ejecutar primero 'Iniciar sesión': guarda el token JWT y las demás peticiones lo envían solas."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9090"
+    },
+    {
+      "key": "correo",
+      "value": "prueba@alba.cl"
+    },
+    {
+      "key": "clave",
+      "value": "Clave123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idSolicitud",
+      "value": ""
+    },
+    {
+      "key": "ahora",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. auth-service",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Crea la cuenta en bd_users.users. Si ya existe responde 'Usuario ya existe!'.",
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{correo}}\",\n  \"password\": \"{{clave}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar sesión (guarda el token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Devuelve el JWT y lo guarda en la variable token.",
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{correo}}\",\n  \"password\": \"{{clave}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('Login correcto', () => pm.expect(r.status).to.eql('ok'));",
+                  "pm.collectionVariables.set('token', r.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Seguridad del gateway",
+      "item": [
+        {
+          "name": "Programas SIN token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Demuestra que el api-gateway valida el JWT antes de dejar pasar la petición.",
+            "url": {
+              "raw": "{{baseUrl}}/programas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programas"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El gateway rechaza sin token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. contenidos-service",
+      "item": [
+        {
+          "name": "Listar programas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "",
+            "url": {
+              "raw": "{{baseUrl}}/programas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear programa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Inserta en bd_contenidos.programa. Aparece al recargar Programas en la app.",
+            "url": {
+              "raw": "{{baseUrl}}/programas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Taller de cocina\",\n  \"categoria\": \"Programa\",\n  \"descripcion\": \"Taller de cocina inclusiva para jóvenes\",\n  \"destinoAporte\": \"Ingredientes y utensilios\",\n  \"tipoColaboracion\": \"Donación\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. vinculacion-service (CRUD)",
+      "item": [
+        {
+          "name": "Listar solicitudes del usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "",
+            "url": {
+              "raw": "{{baseUrl}}/solicitudes/usuario/{{correo}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "solicitudes",
+                "usuario",
+                "{{correo}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear solicitud (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Guarda el id creado en la variable idSolicitud.",
+            "url": {
+              "raw": "{{baseUrl}}/solicitudes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "solicitudes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioCorreo\": \"{{correo}}\",\n  \"nombre\": \"Empresa Postman\",\n  \"tipo\": \"Donación\",\n  \"cantidad\": 50000,\n  \"fecha\": {{ahora}},\n  \"mensaje\": \"Donación creada desde Postman\",\n  \"recurrente\": false,\n  \"aceptaContacto\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('Queda RECIBIDA', () => pm.expect(r.estado).to.eql('RECIBIDA'));",
+                  "pm.collectionVariables.set('idSolicitud', r.id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', Date.now());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar solicitud (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "",
+            "url": {
+              "raw": "{{baseUrl}}/solicitudes/{{idSolicitud}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{idSolicitud}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioCorreo\": \"{{correo}}\",\n  \"nombre\": \"Empresa Postman\",\n  \"tipo\": \"Donación\",\n  \"cantidad\": 80000,\n  \"fecha\": {{ahora}},\n  \"mensaje\": \"Monto actualizado desde Postman\",\n  \"recurrente\": false,\n  \"aceptaContacto\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Monto actualizado', () => pm.expect(pm.response.json().cantidad).to.eql(80000));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', Date.now());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar solicitud (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "description": "",
+            "url": {
+              "raw": "{{baseUrl}}/solicitudes/{{idSolicitud}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{idSolicitud}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Eliminada', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar una que no existe (404)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "",
+            "url": {
+              "raw": "{{baseUrl}}/solicitudes/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "solicitudes",
+                "999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioCorreo\": \"{{correo}}\",\n  \"nombre\": \"Empresa Postman\",\n  \"tipo\": \"Donación\",\n  \"cantidad\": 50000,\n  \"fecha\": {{ahora}},\n  \"mensaje\": \"Donación creada desde Postman\",\n  \"recurrente\": false,\n  \"aceptaContacto\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', Date.now());"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
